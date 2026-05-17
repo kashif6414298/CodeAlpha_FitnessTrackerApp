@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fitness Tracker App</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      background: #f4f7fa;
+      display: flex;
+      justify-content: center;
+      padding: 30px;
+    }
+
+    .container {
+      width: 700px;
+      background: white;
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 25px;
+      color: #333;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    label {
+      font-weight: bold;
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 15px;
+    }
+
+    button {
+      width: 100%;
+      background: #28a745;
+      color: white;
+      padding: 14px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    button:hover {
+      background: #218838;
+    }
+
+    .summary {
+      margin-top: 30px;
+    }
+
+    .card {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 10px;
+      margin-bottom: 10px;
+      border-left: 5px solid #28a745;
+    }
+
+    canvas {
+      margin-top: 30px;
+    }
+
+    .progress {
+      margin-top: 20px;
+    }
+
+    .progress-bar {
+      background: #ddd;
+      border-radius: 10px;
+      overflow: hidden;
+      height: 25px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: #28a745;
+      text-align: center;
+      color: white;
+      line-height: 25px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Fitness Tracker App</h1>
+
+  <div class="form-group">
+    <label>Exercise Type</label>
+    <select id="exerciseType">
+      <option>Walking</option>
+      <option>Running</option>
+      <option>Gym Workout</option>
+      <option>Cycling</option>
+      <option>Yoga</option>
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label>Workout Time (minutes)</label>
+    <input type="number" id="workoutTime" placeholder="Enter workout time">
+  </div>
+
+  <div class="form-group">
+    <label>Calories Burned</label>
+    <input type="number" id="calories" placeholder="Enter calories burned">
+  </div>
+
+  <div class="form-group">
+    <label>Steps Walked</label>
+    <input type="number" id="steps" placeholder="Enter steps">
+  </div>
+
+  <button onclick="addRecord()">Add Fitness Record</button>
+
+  <div class="summary">
+    <h2>Today's Summary</h2>
+
+    <div class="card" id="summaryCard">
+      No records added yet.
+    </div>
+
+    <div class="progress">
+      <h3>Daily Step Goal (10,000 Steps)</h3>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progressFill">0%</div>
+      </div>
+    </div>
+
+    <canvas id="fitnessChart"></canvas>
+  </div>
+</div>
+
+<script>
+  let records = JSON.parse(localStorage.getItem("fitnessRecords")) || [];
+
+  function addRecord() {
+    const type = document.getElementById("exerciseType").value;
+    const time = parseInt(document.getElementById("workoutTime").value);
+    const calories = parseInt(document.getElementById("calories").value);
+    const steps = parseInt(document.getElementById("steps").value);
+
+    if (!time || !calories || !steps) {
+      alert("Please fill all fields");
+      return;
+    }
+
+    const record = {
+      type,
+      time,
+      calories,
+      steps
+    };
+
+    records.push(record);
+    localStorage.setItem("fitnessRecords", JSON.stringify(records));
+
+    updateDashboard();
+
+    document.getElementById("workoutTime").value = "";
+    document.getElementById("calories").value = "";
+    document.getElementById("steps").value = "";
+  }
+
+  function updateDashboard() {
+    let totalCalories = 0;
+    let totalSteps = 0;
+    let totalWorkout = 0;
+
+    records.forEach(record => {
+      totalCalories += record.calories;
+      totalSteps += record.steps;
+      totalWorkout += record.time;
+    });
+
+    document.getElementById("summaryCard").innerHTML = `
+      <strong>Total Workout Time:</strong> ${totalWorkout} mins<br>
+      <strong>Total Calories Burned:</strong> ${totalCalories} kcal<br>
+      <strong>Total Steps:</strong> ${totalSteps}
+    `;
+
+    let progress = Math.min((totalSteps / 10000) * 100, 100);
+    const progressFill = document.getElementById("progressFill");
+    progressFill.style.width = progress + "%";
+    progressFill.innerText = Math.round(progress) + "%";
+
+    renderChart(totalWorkout, totalCalories, totalSteps);
+  }
+
+  let chart;
+
+  function renderChart(workout, calories, steps) {
+    const ctx = document.getElementById("fitnessChart").getContext("2d");
+
+    if (chart) {
+      chart.destroy();
+    }
+
+    chart = new Chart(ctx, {
+      type: "bar",
+      data: {
+        labels: ["Workout Time", "Calories", "Steps"],
+        datasets: [{
+          label: "Fitness Progress",
+          data: [workout, calories, steps],
+          backgroundColor: [
+            "#007bff",
+            "#ffc107",
+            "#28a745"
+          ]
+        }]
+      },
+      options: {
+        responsive: true
+      }
+    });
+  }
+
+  updateDashboard();
+</script>
+
+</body>
+</html>
